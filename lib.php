@@ -28,7 +28,7 @@ require_once($CFG->libdir.'/tablelib.php');
 class grade_report_grade_breakdown extends grade_report {
     // Cache grade item pull from db
     var $grade_items;
-    
+
     // Cache the group pulled from db
     var $group;
 
@@ -81,15 +81,15 @@ class grade_report_grade_breakdown extends grade_report {
         $this->baseurl = $CFG->wwwroot.'/grade/report/grade_breakdown/index.php?id='.$courseid;
         $this->pbarurl = $this->baseurl;
 
-        $this->course->groupmode = 2;        
+        $this->course->groupmode = 2;
     }
 
     function setup_grade_items() {
         global $CFG;
-       
+
         $course_item_id = get_field('grade_items', 'id', 'itemtype', 
                              'course', 'courseid', $this->course->id);
- 
+
         $sql = "SELECT g.id, g.itemname, gc.fullname FROM
                     {$CFG->prefix}grade_items g,
                     {$CFG->prefix}grade_categories gc
@@ -104,12 +104,12 @@ class grade_report_grade_breakdown extends grade_report {
             $sql .= " AND g.hidden = 0 ";
         }
         $sql .= " ORDER BY sortorder ";
-       
+
         $sql_grades = get_records_sql($sql);
         $grades = array(0 => get_string('all_grades', 'gradereport_grade_breakdown'));
         foreach ($sql_grades as $id => $sql_g) {
             $grades[$id] = ($sql_g->itemname != null) ? $sql_g->itemname : $sql_g->fullname;
-        }        
+        }
 
         $grades += array($course_item_id => get_string('course_total', 
                                                        'gradereport_grade_breakdown'));
@@ -147,7 +147,7 @@ class grade_report_grade_breakdown extends grade_report {
             $groups = $sql_groups;
             $this->currentgroup = current(array_keys($sql_groups));
         }
-       
+
         // Cache the grade selector html for later use
         $this->group_selector = popup_form($this->pbarurl  . '&amp;grade=' . $this->currentgrade . '&amp;group=', 
                                 $groups, 'selectgroup', $this->currentgroup, 
@@ -168,7 +168,7 @@ class grade_report_grade_breakdown extends grade_report {
 
             if (isset($this->group)) {
                 $groupname = $this->group->name;
-                
+
                 // Get all the grades for that grade item, for this group
                 $sql = "SELECT g.* FROM 
                             {$CFG->prefix}grade_grades g,
@@ -333,7 +333,7 @@ class grade_report_grade_breakdown extends grade_report {
             print_table($table);
         }
     }
-    
+
     // Link the letter grade to even further break down info
     function link_to_letter($letter, $boundary, $grade) {
         if ($this->caps['is_teacher']) {
@@ -415,20 +415,25 @@ function find_num_users($context, $groupid) {
 // Course settings moodle form definition
 function grade_report_grade_breakdown_settings_definition(&$mform) {
     global $CFG;
-    
-    $options = array(-1 => get_string('default', 'grades'),
-                      0 => get_string('no'),
-                      1 => get_string('yes'));
 
-    if(empty($CFG->grade_report_grade_breakdown_allowstudents)) {
+    $options = array(
+        -1 => get_string('default', 'grades'),
+        0 => get_string('no'),
+        1 => get_string('yes')
+    );
+
+    $allowstudents = get_config('moodle', 'grade_report_grade_greakdown_allowstudents');
+
+    if (empty($allowstudents)) {
         $options[-1] = get_string('defaultprev', 'grades', $options[0]);
     } else {
         $options[-1] = get_string('defaultprev', 'grades', $options[1]);
     }
 
-    $mform->addElement('select', 'report_grade_breakdown_allowstudents',
-                       get_string('allowstudents', 'gradereport_grade_breakdown'),
-                       $options);
+    $mform->addElement(
+        'select', 'report_grade_breakdown_allowstudents',
+        get_string('allowstudents', 'gradereport_grade_breakdown'),
+        $options
+    );
 }
 
-?>
