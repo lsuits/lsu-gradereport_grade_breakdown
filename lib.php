@@ -38,10 +38,18 @@ class grade_report_grade_breakdown extends grade_report {
     // id of the current grade chosen
     var $currentgrade;
 
-    function grade_report_grade_breakdown($courseid, $gpr, $context, 
-                                          $gradeid = null, $groupid = null) {
+    /**
+     * This is a view only report
+     */
+    function process_data($data) {
+    }
+
+    function process_action($target, $action) {
+    }
+
+    function __construct($courseid, $gpr, $context, $gradeid = null, $groupid = null) {
         global $CFG;
-        parent::grade_report($courseid, $gpr, $context);
+        parent::__construct($courseid, $gpr, $context);
 
         // Cache these capabilities
         $this->caps = array('is_teacher' => has_capability('moodle/grade:viewall', $context),
@@ -195,7 +203,7 @@ class grade_report_grade_breakdown extends grade_report {
             if (!$this->caps['hidden']) {
                 $sql .= " AND g.hidden = 0 ";
             }
- 
+
             // Check preference
             // Get all the grades for that grade item
             $grades = get_records_sql($sql);
@@ -265,7 +273,7 @@ class grade_report_grade_breakdown extends grade_report {
                 $boundary = format_float($info->boundary, $decimals);
                 $gmax = format_float($max, $decimals);
                 $boundary_max = format_float($item->grademax * ($info->boundary / 100), $decimals);
-                $pmax = format_float($item->grademax * ($max / 100), $decimals);           
+                $pmax = format_float($item->grademax * ($max / 100), $decimals);
                 $high_percent = round($info->high_percent, $decimals);
                 $low_percent = round($info->low_percent , $decimals);
                 $high_real = round($info->high_real, $decimals);
@@ -278,7 +286,7 @@ class grade_report_grade_breakdown extends grade_report {
                            $gmax . '%' : $this->link_to_letter(($boundary . '% - '.
                            $gmax . '%'), $info->boundary, $item->id);
                 $line[] = ($info->count==0) ? $boundary_max . ' - ' .
-                           $pmax : $this->link_to_letter(($boundary_max . ' - ' . $pmax), 
+                           $pmax : $this->link_to_letter(($boundary_max . ' - ' . $pmax),
                            $info->boundary, $item->id);
                 $line[] = ($info->count==0) ? $high_percent . '%' :
                            $this->link_to_letter(($high_percent . '%'), $info->boundary, $item->id);
@@ -313,20 +321,20 @@ class grade_report_grade_breakdown extends grade_report {
 
             // Prepare the table for viewing
             $table = new object();
-            $table->head = array(get_string('letter', 'grades'), 
-                                 get_string('percent_range', 'gradereport_grade_breakdown'), 
-                                 get_string('real_range', 'gradereport_grade_breakdown'), 
+            $table->head = array(get_string('letter', 'grades'),
+                                 get_string('percent_range', 'gradereport_grade_breakdown'),
+                                 get_string('real_range', 'gradereport_grade_breakdown'),
                                  get_string('highest_percent', 'gradereport_grade_breakdown'),
-                                 get_string('highest_real', 'gradereport_grade_breakdown'), 
+                                 get_string('highest_real', 'gradereport_grade_breakdown'),
                                  get_string('lowest_percent', 'gradereport_grade_breakdown'),
-                                 get_string('lowest_real', 'gradereport_grade_breakdown'), 
+                                 get_string('lowest_real', 'gradereport_grade_breakdown'),
                                  get_string('percent_average', 'gradereport_grade_breakdown'),
                                  get_string('real_average', 'gradereport_grade_breakdown'),
                                  get_string('total_percent', 'gradereport_grade_breakdown'),
                                  get_string('count', 'gradereport_grade_breakdown'));
-            $table->size = array('10%', '30%', '20%', '5%', '5%', '5%', '5%', '5%', 
+            $table->size = array('10%', '30%', '20%', '5%', '5%', '5%', '5%', '5%',
                                  '5%', '5%', '5%');
-            $table->align = array('left', 'right', 'right', 'right', 'right', 'right', 
+            $table->align = array('left', 'right', 'right', 'right', 'right', 'right',
                                   'right', 'right', 'right', 'right', 'right');
             $table->data = $final_data;
 
