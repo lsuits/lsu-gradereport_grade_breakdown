@@ -415,30 +415,57 @@ class grade_report_grade_breakdown extends grade_report {
     }
 }
 
-// The following functions were ripped from /grade/user/report/lib.php
+function print_edit_link($courseid, $grade_item, $grade_gradeid) {
+
+    if (!in_array($grade_item->itemtype, array('course', 'category'))) {
+        $url = new moodle_url('/grade/edit/tree/grade.php', array(
+            'courseid' => $courseid,
+            'id' => $grade_gradeid,
+            'gpr_type' => 'report',
+            'gpr_courseid' => $courseid,
+            'gpr_plugin' => 'grade_breakdown'
+        ));
+
+        return html_writer::link($url, get_string('edit', 'grades'));
+    } else {
+        return 'X';
+    }
+}
+
 function find_rank($context, $grade_item, $grade_grade, $groupid) {
-    global $CFG;
+    global $DB;
+
+    $params = array(
+        'finalgrade' => $grade_grade->finalgrade,
+        'itemid' => $grade_item->id,
+        'contextid' => $context->id,
+        'gradebookroles' => get_config('moodle', 'gradebookroles')
+    );
 
     $group_select = '';
     $group_where = '';
+
     if ($groupid) {
-        $group_select = " INNER JOIN {$CFG->prefix}groups_members gr 
+        $params += array('groupid' => $groupid);
+
+        $group_select = " INNER JOIN {groups_members} gr
                             ON gr.userid = g.userid ";
-        $group_where = " AND gr.groupid = {$groupid} ";
+        $group_where = " AND gr.groupid = :groupid ";
     }
 
     $sql = "SELECT COUNT(DISTINCT(g.userid))
-              FROM {$CFG->prefix}grade_grades g
-                INNER JOIN {$CFG->prefix}role_assignments r
+              FROM {grade_grades} g
+                INNER JOIN {role_assignments} r
                   ON r.userid = g.userid
                 $group_select
-             WHERE finalgrade IS NOT NULL AND finalgrade > $grade_grade->finalgrade
-                AND itemid = {$grade_item->id}
+              WHERE g.finalgrade IS NOT NULL
+                AND g.finalgrade > :finalgrade
+                AND g.itemid = :itemid
                 $group_where
-                AND(r.contextid = $context->id)
-                AND r.roleid IN ({$CFG->gradebookroles})";
+                AND (r.contextid = :contextid
+                AND r.roleid IN (:gradebookroles))";
 
-    return count_records_sql($sql) + 1;
+    return $DB->count_records_sql($sql, $params) + 1;
 }
 
 // Course settings moodle form definition
