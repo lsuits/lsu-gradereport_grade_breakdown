@@ -27,11 +27,15 @@ require_once $CFG->dirroot.'/lib/gradelib.php';
 require_once $CFG->dirroot.'/grade/lib.php';
 require_once $CFG->dirroot.'/grade/report/grade_breakdown/lib.php';
 
-$courseid = required_param('id');
+$courseid = required_param('id', PARAM_INT);
 $gradeid  = optional_param('grade', null, PARAM_INT);
 $groupid  = optional_param('group', null, PARAM_INT);
 
-if (!$course = get_record('course', 'id', $courseid)) {
+$PAGE->set_url(new moodle_url('/grade/report/grade_breakdown/index.php', array(
+    'id' => $courseid, 'grade' => $gradeid, 'group' => $groupid
+)));
+
+if (!$course = $DB->get_record('course', array('id' => $courseid))) {
     print_error('nocourseid');
 }
 
@@ -49,13 +53,19 @@ $is_teacher = has_capability('moodle/grade:viewall', $context);
 $gradedroles = explode(',', $CFG->gradebookroles);
 
 $has_access = false;
-// If the user is a "student" (graded role), and the teacher allowed them 
+// If the user is a "student" (graded role), and the teacher allowed them
 // to view the report
-if (!$is_teacher && grade_get_setting($courseid, 
-                    'report_grade_breakdown_allowstudents', 
-                    $CFG->grade_report_grade_breakdown_allowstudents)) {
+
+$allowstudents = grade_get_setting(
+    $courseid,
+    'report_grade_breakdown_allowstudents',
+    $CFG->grade_report_grade_breakdown_allowstudents
+);
+
+if (!$is_teacher && $allowstudents) {
     $user_roles = get_user_roles($context, $USER->id);
-    foreach($user_roles as $role) {
+
+    foreach ($user_roles as $role) {
         if (in_array($role->roleid, $gradedroles)) {
             $has_access = true;
             break;
@@ -64,45 +74,43 @@ if (!$is_teacher && grade_get_setting($courseid,
 }
 // End permission
 
-$gpr = new grade_plugin_return(array('type' => 'report', 'plugin' => 'grade_breakdown', 'courseid' => $courseid));
+$_s = function($key, $a = null) {
+    return get_string($key, 'gradereport_grade_breakdown');
+};
 
-/// last selected report session tracking
+$gpr = new grade_plugin_return(array(
+    'type' => 'report', 'plugin' => 'grade_breakdown', 'courseid' => $courseid
+));
+
 if (!isset($USER->grade_last_report)) {
     $USER->grade_last_report = array();
 }
 $USER->grade_last_report[$course->id] = 'grade_breakdown';
 
-/// Build navigation
-$strgrades  = get_string('grades');
-$reportname = get_string('modulename', 'gradereport_grade_breakdown');
-
-$navigation = grade_build_nav(__FILE__, $reportname, $courseid);
-
-/// Print header
-print_header_simple($strgrades.': '.$reportname, ': '.$strgrades, $navigation,
-                    '', '', true, '', navmenu($course));
-
 grade_regrade_final_grades($courseid);
 
-/// Print the plugin selector at the top
-print_grade_plugin_selector($courseid, 'report', 'grade_breakdown');
+$reportname = $_s('pluginname');
+
+$PAGE->set_context($context);
+
+print_grade_page_head($course->id, 'report', 'grade_breakdown', $reportname, false);
 
 // Find the number of users in the course
 $num_users = find_num_users($context, 0);
 
 // The current user does not have access to view this report
 if (!$has_access && !$is_teacher) {
-    print_heading(get_string('teacher_disabled', 'gradereport_grade_breakdown'));
-    print_footer();
-    die();
+    echo $OUTPUT->heading($_s('teacher_disabled'));
+    echo $OUTPUT->footer();
+    exit;
 }
 
 // The student has access, but they still are unable to view it
 // if there is 10 or less student enrollments in the class
 if (!$is_teacher && $num_users <= 10) {
-    print_heading(get_string('size_disabled', 'gradereport_grade_breakdown'));
-    print_footer();
-    die();
+    echo $OUTPUT->heading($_s('size_disabled'));
+    echo $OUTPUT->footer();
+    exit;
 }
 
 $report = new grade_report_grade_breakdown($courseid, $gpr, $context, $gradeid, $groupid);
@@ -112,8 +120,9 @@ $report->setup_groups();
 echo '<div class="selectors">
         '. ($is_teacher ? $report->group_selector : '') . $report->grade_selector . '
       </div>';
+
 $report->print_table();
 
-print_footer();
+echo $OUTPUT->footer();
 
 ?>
