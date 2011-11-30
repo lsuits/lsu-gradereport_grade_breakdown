@@ -47,13 +47,20 @@ class grade_report_grade_breakdown extends grade_report {
     function process_action($target, $action) {
     }
 
-    function __construct($courseid, $gpr, $context, $gradeid = null, $groupid = null) {
-        global $CFG;
+    function _s($key, $a = null) {
+        return get_string($key, 'gradereport_grade_breakdown', $a);
+    }
+
+    function __construct($courseid, $gpr, $context, $gradeid=null, $groupid=null) {
         parent::__construct($courseid, $gpr, $context);
 
+        global $DB;
+
         // Cache these capabilities
-        $this->caps = array('is_teacher' => has_capability('moodle/grade:viewall', $context),
-                            'hidden'     => has_capability('moodle/grade:viewhidden', $context));
+        $this->caps = array(
+            'is_teacher' => has_capability('moodle/grade:viewall', $context),
+            'hidden'     => has_capability('moodle/grade:viewhidden', $context)
+        );
 
         // By default we'll be pulling from every item in the course
         $query = array('courseid' => $courseid);
@@ -69,86 +76,100 @@ class grade_report_grade_breakdown extends grade_report {
 
         // We retrieved from the store, now we must check that it is a valid
         // grade item. If it is, then we can use it
-        if ($gradeid != 0 && get_field('grade_items', 'id', 'id', $gradeid)) {
-            $query['id'] = $gradeid;
+        $item_query = array('id' => $gradeid);
+
+        if ($gradeid != 0 && $DB->get_field('grade_items', 'id', $item_query)) {
+            $query += $item_query;
         }
 
         // Get the percentage for only this group
         if ($groupid) {
-            $this->group = get_record('groups', 'id', $groupid);
+            $this->group = $DB->get_record('groups', array('id' => $groupid));
         }
 
         if (!$this->caps['hidden']) {
-            $query['hidden'] = 0;
+            $query += array('hidden' => 0);
         }
 
         $this->currentgroup = $groupid;
         $this->currentgrade = $gradeid;
         $this->grade_items = grade_item::fetch_all($query);
 
-        $this->baseurl = $CFG->wwwroot.'/grade/report/grade_breakdown/index.php?id='.$courseid;
-        $this->pbarurl = $this->baseurl;
+        $this->baseurl = '/grade/report/grade_breakdown/index.php';
 
         $this->course->groupmode = 2;
     }
 
     function setup_grade_items() {
-        global $CFG;
+        global $OUTPUT, $DB;
 
-        $course_item_id = get_field('grade_items', 'id', 'itemtype', 
-                             'course', 'courseid', $this->course->id);
+        $item_id_query = array(
+            'itemtype' => 'course', 'courseid' => $this->course->id
+        );
+
+        $course_item_id = $DB->get_field('grade_items', 'id', $item_id_query);
 
         $sql = "SELECT g.id, g.itemname, gc.fullname FROM
-                    {$CFG->prefix}grade_items g,
-                    {$CFG->prefix}grade_categories gc
+                    {grade_items} g,
+                    {grade_categories} gc
                  WHERE g.itemtype != 'course'
                    AND ((gc.id = g.iteminstance AND g.categoryid IS NULL)
-                   OR 
-                     gc.id = g.categoryid)
-                   AND g.courseid = {$this->course->id} ";
+                   OR gc.id = g.categoryid)
+                   AND g.courseid = :courseid ";
 
         // User can't see hiddens: this means they can't see hidden
         if (!$this->caps['hidden']) {
             $sql .= " AND g.hidden = 0 ";
         }
+
         $sql .= " ORDER BY sortorder ";
 
-        $sql_grades = get_records_sql($sql);
-        $grades = array(0 => get_string('all_grades', 'gradereport_grade_breakdown'));
+        $params = array('courseid' => $this->courseid);
+
+        $sql_grades = $DB->get_records_sql($sql, $params);
+
+        $grades = array(0 => self::_s('all_grades'));
+
         foreach ($sql_grades as $id => $sql_g) {
             $grades[$id] = ($sql_g->itemname != null) ? $sql_g->itemname : $sql_g->fullname;
         }
 
-        $grades += array($course_item_id => get_string('course_total', 
-                                                       'gradereport_grade_breakdown'));
+        $grades += array($course_item_id => self::_s('course_total'));
 
         // Cache the grade selector html for later use
-        $this->grade_selector = popup_form($this->pbarurl . '&amp;group=' . $this->currentgroup . '&amp;grade=', 
-                                $grades, 'selectgrade', $this->currentgrade, 
-                                '', '', '', true, 'self',
-                                get_string('items', 'gradereport_grade_breakdown'));
+        $url = new moodle_url($this->baseurl, array(
+            'id' => $this->courseid,
+            'group' => $this->currentgroup
+        ));
 
+        $this->grade_selector = $OUTPUT->single_select(
+            $url, 'grade', $grades, $this->currentgrade
+        );
     }
 
     /**
      * Changing the setup groups method to look at group membership
      */
     function setup_groups() {
-        global $CFG, $USER;
+        global $OUTPUT, $USER, $DB;
 
-        $sql = "SELECT g.id, g.name 
-                    FROM {$CFG->prefix}groups g,
-                         {$CFG->prefix}groups_members gr
-                    WHERE g.courseid = {$this->courseid}
+        $params = array('courseid' => $this->courseid);
+
+        $sql = "SELECT DISTINCT(g.id), g.name
+                    FROM {groups} g,
+                         {groups_members} gr
+                    WHERE g.courseid = :courseid
                       AND gr.groupid = g.id ";
 
-        if (!has_capability('moodle/site:accessallgroups', $this->context, $USER->id)) {
-            $sql .= " AND gr.userid = {$USER->id} ";
+        if (!has_capability('moodle/site:accessallgroups', $this->context)) {
+            $params += array('userid' => $USER->id);
+            $sql .= " AND gr.userid = :userid ";
         }
 
         $sql .= " ORDER BY g.name";
 
-        $sql_groups = get_records_sql_menu($sql);
+        $sql_groups = $DB->get_records_sql_menu($sql, $params);
+
         if (count($sql_groups) > 1) {
             $groups = array(0 => get_string('allparticipants')) + $sql_groups;
         } else {
@@ -157,46 +178,59 @@ class grade_report_grade_breakdown extends grade_report {
         }
 
         // Cache the grade selector html for later use
-        $this->group_selector = popup_form($this->pbarurl  . '&amp;grade=' . $this->currentgrade . '&amp;group=', 
-                                $groups, 'selectgroup', $this->currentgroup, 
-                                '', '', '', true, 'self', get_string('groupsvisible'));
+        $url = new moodle_url($this->baseurl, array(
+            'id' => $this->courseid,
+            'grade' => $this->currentgrade
+        ));
+
+        $this->group_selector = $OUTPUT->single_select(
+            $url, 'group', $groups, $this->currentgroup, 0
+        );
     }
 
     function print_table() {
-        global $CFG;
+        global $OUTPUT, $DB;
 
         // Filter by those who are actually enrolled
-        $role_select = ", {$CFG->prefix}role_assignments ra ";
-        $role_where = " AND ra.contextid = {$this->context->id}
-                        AND ra.roleid IN ({$CFG->gradebookroles})
+        $params = array(
+            'contextid' => $this->context->id,
+            'gradebookroles' => get_config('moodle', 'gradebookroles')
+        );
+
+        $role_select = ", {role_assignments} ra ";
+        $role_where = " AND ra.contextid = :contextid
+                        AND ra.roleid IN (:gradebookroles)
                         AND ra.userid = g.userid ";
 
         // Print a table for each grade item
         foreach ($this->grade_items as $item) {
 
+            $params['itemid'] = $item->id;
+
             if (isset($this->group)) {
                 $groupname = $this->group->name;
 
+                $params['groupid'] = $this->group->id;
+
                 // Get all the grades for that grade item, for this group
-                $sql = "SELECT g.* FROM 
-                            {$CFG->prefix}grade_grades g,
-                            {$CFG->prefix}groups_members gm
+                $sql = "SELECT g.* FROM
+                            {grade_grades} g,
+                            {groups_members} gm
                             $role_select
                         WHERE g.userid = gm.userid
                           $role_where
-                          AND g.itemid = {$item->id}
-                          AND gm.groupid = {$this->group->id} ";
+                          AND g.itemid = :itemid
+                          AND gm.groupid = :groupid ";
             } else {
                 $groupname = get_string('allparticipants');
 
                 $sql = "SELECT g.* FROM
-                            {$CFG->prefix}grade_grades g
+                            {grade_grades} g
                             $role_select
-                        WHERE g.itemid = {$item->id}
+                        WHERE g.itemid = :itemid
                           $role_where ";
             }
 
-            // If the user has the ability to view hiddens, then we query hidden grades
             $sql .= " AND g.finalgrade IS NOT NULL
                       AND g.excluded = 0 ";
 
@@ -206,7 +240,7 @@ class grade_report_grade_breakdown extends grade_report {
 
             // Check preference
             // Get all the grades for that grade item
-            $grades = get_records_sql($sql);
+            $grades = $DB->get_records_sql($sql, $params);
 
             // Cache the decimal value of the grade item for later use
             $decimals = $item->get_decimals();
@@ -239,9 +273,11 @@ class grade_report_grade_breakdown extends grade_report {
                 foreach ($grades as $grade) {
                     $value = grade_grade::standardise_score($grade->finalgrade, 
                                 $item->grademin, $item->grademax, 0, 100);
-                    //$value = bounded_number(0, $value, 100);
+
                     $value = round($value, $item->get_decimals());
+
                     foreach ($letters as $boundary => $letter) {
+
                         // Add it to the data
                         if ($value >= $boundary) {
                             // Get the highest grade for this boundary
@@ -270,6 +306,7 @@ class grade_report_grade_breakdown extends grade_report {
             $max = 100;
             $final_data = array();
             foreach ($data as $letter => $info) {
+
                 $boundary = format_float($info->boundary, $decimals);
                 $gmax = format_float($max, $decimals);
                 $boundary_max = format_float($item->grademax * ($info->boundary / 100), $decimals);
@@ -281,25 +318,38 @@ class grade_report_grade_breakdown extends grade_report {
 
                 $line = array();
                 $line[] = ($info->count==0) ? format_string($letter) :
-                           $this->link_to_letter($letter, $info->boundary, $item->id);
+                    $this->link_to_letter($letter, $info->boundary, $item->id);
+
                 $line[] = ($info->count==0) ? $boundary . '% - '.
-                           $gmax . '%' : $this->link_to_letter(($boundary . '% - '.
-                           $gmax . '%'), $info->boundary, $item->id);
+                    $gmax . '%' : $this->link_to_letter(($boundary . '% - '.
+                    $gmax . '%'), $info->boundary, $item->id);
+
                 $line[] = ($info->count==0) ? $boundary_max . ' - ' .
-                           $pmax : $this->link_to_letter(($boundary_max . ' - ' . $pmax),
-                           $info->boundary, $item->id);
+                    $pmax : $this->link_to_letter(($boundary_max . ' - ' . $pmax),
+                    $info->boundary, $item->id);
+
                 $line[] = ($info->count==0) ? $high_percent . '%' :
-                           $this->link_to_letter(($high_percent . '%'), $info->boundary, $item->id);
+                    $this->link_to_letter(($high_percent . '%'), $info->boundary, $item->id);
                 $line[] = ($info->count==0) ? ($high_real) :
-                           $this->link_to_letter($high_real, $info->boundary, $item->id);
+                    $this->link_to_letter($high_real, $info->boundary, $item->id);
+
                 $line[] = ($info->count==0) ? ($low_percent . '%') :
-                           $this->link_to_letter(($low_percent . '%'), $info->boundary, $item->id);
-                $line[] = ($info->count == 0) ? 0 : $this->link_to_letter($low_real, $info->boundary, $item->id);
-                $line[] = round(($info->percent_total / $info->count), $decimals) . '%';
-                $line[] = round(($info->real_total / $info->count), $decimals);
+                    $this->link_to_letter(($low_percent . '%'), $info->boundary, $item->id);
+
+                $line[] = ($info->count == 0) ? 0 :
+                    $this->link_to_letter($low_real, $info->boundary, $item->id);
+
+                $line[] = ($info->count == 0 ? 0 :
+                    round(($info->percent_total / $info->count), $decimals)) . '%';
+
+                $line[] = ($info->count == 0 ? 0 :
+                    round(($info->real_total / $info->count), $decimals));
+
                 $line[] = round(($info->count / (($total_grades) ? $total_grades : 1)) * 100, $decimals) . '%';
                 $line[] = $info->count;
+
                 $final_data[] = $line;
+
                 $max = $info->boundary - (1 / (pow(10, $decimals)));
             }
 
@@ -310,45 +360,55 @@ class grade_report_grade_breakdown extends grade_report {
 
             // Get the name of the item
             if (!$item->itemname && $item->itemtype == 'course') {
-                $name = get_string('course_total', 'gradereport_grade_breakdown');
+                $name = self::_s('course_total');
             } else if (!$item->itemname) {
-                $name = get_field('grade_categories', 'fullname', 'id', $item->iteminstance);
+                $inst = array('id' => $item->iteminstance);
+                $name = $DB->get_field('grade_categories', 'fullname', $inst);
             } else {
                 $name = $item->itemname;
             }
 
-            print_heading($name . ' for '. $groupname);
+            echo $OUTPUT->heading($name . ' for '. $groupname);
 
             // Prepare the table for viewing
-            $table = new object();
-            $table->head = array(get_string('letter', 'grades'),
-                                 get_string('percent_range', 'gradereport_grade_breakdown'),
-                                 get_string('real_range', 'gradereport_grade_breakdown'),
-                                 get_string('highest_percent', 'gradereport_grade_breakdown'),
-                                 get_string('highest_real', 'gradereport_grade_breakdown'),
-                                 get_string('lowest_percent', 'gradereport_grade_breakdown'),
-                                 get_string('lowest_real', 'gradereport_grade_breakdown'),
-                                 get_string('percent_average', 'gradereport_grade_breakdown'),
-                                 get_string('real_average', 'gradereport_grade_breakdown'),
-                                 get_string('total_percent', 'gradereport_grade_breakdown'),
-                                 get_string('count', 'gradereport_grade_breakdown'));
+            $table = new html_table();
+            $table->head = array(
+                get_string('letter', 'grades'),
+                self::_s('percent_range'),
+                self::_s('real_range'),
+                self::_s('highest_percent'),
+                self::_s('highest_real'),
+                self::_s('lowest_percent'),
+                self::_s('lowest_real'),
+                self::_s('percent_average'),
+                self::_s('real_average'),
+                self::_s('total_percent'),
+                self::_s('count')
+            );
+
             $table->size = array('10%', '30%', '20%', '5%', '5%', '5%', '5%', '5%',
                                  '5%', '5%', '5%');
+
             $table->align = array('left', 'right', 'right', 'right', 'right', 'right',
                                   'right', 'right', 'right', 'right', 'right');
+
             $table->data = $final_data;
 
-            print_table($table);
+            echo html_writer::table($table);
         }
     }
 
     // Link the letter grade to even further break down info
     function link_to_letter($letter, $boundary, $grade) {
         if ($this->caps['is_teacher']) {
-            return '<a href="letter_report.php?id='.$this->course->id.
-               '&amp;bound='.$boundary.'&amp;group='.$this->currentgroup.
-               '&amp;grade='.$grade. '">'.
-               format_string($letter).'</a>';
+            $url = new moodle_url('letter_report.php', array(
+                'id' => $this->courseid,
+                'bound' => $boundary,
+                'group' => $this->currentgroup,
+                'grade' => $grade
+
+            ));
+            return html_writer::link($url, format_string($letter));
         } else {
             return format_string($letter);
         }
@@ -379,45 +439,6 @@ function find_rank($context, $grade_item, $grade_grade, $groupid) {
                 AND r.roleid IN ({$CFG->gradebookroles})";
 
     return count_records_sql($sql) + 1;
-}
-
-function find_num_users($context, $groupid) {
-    global $CFG;
-
-    $group_select = '';
-    $group_where = '';
-    if ($groupid) {
-        $group_select = " JOIN {$CFG->prefix}groups_members gr 
-                          ON gr.userid = u.id ";
-        $group_where = " AND gr.groupid = {$groupid}";
-    }
-
-    $parentcontexts = '';
-    $parentcontexts = substr($context->path, 1); // kill leading slash
-    $parentcontexts = str_replace('/', ',', $parentcontexts);
-
-    if ($parentcontexts !== '') {
-        $parentcontexts = ' OR r.contextid IN ('.$parentcontexts.' )';
-    }
-
-   //Checking to see if the person can view hidden role assignments. If not, then omit any hidden roles from the number of users in a course
-    $canseehidden = has_capability('moodle/role:viewhiddenassigns', $context);
-    if (!$canseehidden) {
-        $hidden = ' AND r.hidden = 0 ';
-    }
-
-    // Counts the sql for gradeable users in the course
-    $sql = "SELECT count(u.id)
-              FROM {$CFG->prefix}role_assignments r
-                  JOIN {$CFG->prefix}user u 
-                  ON u.id = r.userid
-                  $group_select
-              WHERE (r.contextid = $context->id $parentcontexts)
-                  $hidden
-                  AND r.roleid IN ({$CFG->gradebookroles})
-                  $group_where
-                  AND u.deleted = 0";
-    return count_records_sql($sql);
 }
 
 // Course settings moodle form definition
