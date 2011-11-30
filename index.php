@@ -95,15 +95,16 @@ $PAGE->set_context($context);
 
 print_grade_page_head($course->id, 'report', 'grade_breakdown', $reportname, false);
 
-// Find the number of users in the course
-$num_users = find_num_users($context, 0);
-
 // The current user does not have access to view this report
 if (!$has_access && !$is_teacher) {
     echo $OUTPUT->heading($_s('teacher_disabled'));
     echo $OUTPUT->footer();
     exit;
 }
+
+// Find the number of users in the course
+$users = get_role_users($gradedroles, $context, false, 'u.id');
+$num_users = count($users);
 
 // The student has access, but they still are unable to view it
 // if there is 10 or less student enrollments in the class
@@ -113,7 +114,10 @@ if (!$is_teacher && $num_users <= 10) {
     exit;
 }
 
-$report = new grade_report_grade_breakdown($courseid, $gpr, $context, $gradeid, $groupid);
+$report = new grade_report_grade_breakdown(
+    $courseid, $gpr, $context, $gradeid, $groupid
+);
+
 $report->setup_grade_items();
 $report->setup_groups();
 
