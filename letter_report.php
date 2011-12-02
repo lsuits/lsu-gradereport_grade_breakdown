@@ -71,12 +71,16 @@ $grade_report = new grade_report_grade_breakdown(
     $courseid, $gpr, $context, $gradeid, $groupid
 );
 
-$grade_report->base_url = '/grade/report/grade_breakdown/letter_report.php?id='.
+$grade_report->baseurl = '/grade/report/grade_breakdown/letter_report.php?id='.
     $courseid . '&amp;bound='. $bound;
 
 $grade_report->setup_groups();
+$grade_report->setup_grade_items();
 
-echo '<div class="selectors">'. $grade_report->group_selector. '</div>';
+echo '<div class="selectors">' .
+    $grade_report->group_selector .
+    $grade_report->grade_selector .
+    '</div>';
 
 // Get all the students in this course
 $roleids = explode(',', $CFG->gradebookroles);
@@ -118,25 +122,24 @@ $real_high = $grade_item->grademax * ($high / 100);
 $real_low  = $grade_item->grademax * ($bound / 100);
 
 $query_params = array(
+    'courseid' => $courseid,
     'gradeid' => $gradeid,
     'real_high' => $real_high,
     'real_low' => $real_low
 );
 
 // Add group sql
-$group_select = "";
-$group_where  = "";
+$group_select = ', {groups} grou, {groups_members} gr ';
+$group_where = ' AND u.id = gr.userid AND grou.courseid = :courseid AND gr.groupid = grou.id ';
 
 if ($groupid) {
     $query_params += array('groupid' => $groupid);
 
-    $group_select = ", {groups_members} gr ";
-    $group_where = " AND u.id = gr.userid
-                     AND gr.groupid = :groupid ";
+    $group_where .= " AND gr.groupid = :groupid ";
 }
 
 // Get all the grades for the users within the range specified with $real_high and $real_low
-$sql = "SELECT u.id, g.id AS gradeid, g.finalgrade, u.firstname, u.lastname FROM
+$sql = "SELECT u.id, g.id AS gradeid, g.finalgrade, u.firstname, u.lastname, grou.name FROM
                 {grade_grades} g,
                 {user} u
                 $group_select
@@ -190,6 +193,8 @@ foreach ($grades as $userid => $gr) {
 
     $line[] = html_writer::link($url, fullname($gr));
 
+    $line[] = $gr->name;
+
     $line[] = grade_format_gradevalue($gr->finalgrade, $grade_item, true,
         GRADE_DISPLAY_TYPE_REAL);
 
@@ -205,6 +210,7 @@ foreach ($grades as $userid => $gr) {
 $table = new html_table();
 $table->head = array(
     get_string('fullname'),
+    get_string('group'),
     get_string('real_grade', 'gradereport_grade_breakdown'),
     get_string('percent', 'grades'),
     ($groupid ? get_string('group') : get_string('course')) . ' ' . get_string('rank', 'grades'),
