@@ -201,14 +201,13 @@ class grade_report_grade_breakdown extends grade_report {
         global $OUTPUT, $DB;
 
         // Filter by those who are actually enrolled
-        $params = array(
-            'contextid' => $this->context->id,
-            'gradebookroles' => get_config('moodle', 'gradebookroles')
-        );
+        $params = array('contextid' => $this->context->id);
+
+        $gradebookroles = get_config('moodle', 'gradebookroles');
 
         $role_select = ", {role_assignments} ra ";
         $role_where = " AND ra.contextid = :contextid
-                        AND ra.roleid IN (:gradebookroles)
+                        AND ra.roleid IN ({$gradebookroles})
                         AND ra.userid = g.userid ";
 
         // Print a table for each grade item
@@ -451,9 +450,10 @@ function find_rank($context, $grade_item, $grade_grade, $groupid) {
     $params = array(
         'finalgrade' => $grade_grade->finalgrade,
         'itemid' => $grade_item->id,
-        'contextid' => $context->id,
-        'gradebookroles' => get_config('moodle', 'gradebookroles')
+        'contextid' => $context->id
     );
+
+    $gradebookroles = get_config('moodle', 'gradebookroles');
 
     $group_select = '';
     $group_where = '';
@@ -476,7 +476,7 @@ function find_rank($context, $grade_item, $grade_grade, $groupid) {
                 AND g.itemid = :itemid
                 $group_where
                 AND (r.contextid = :contextid
-                AND r.roleid IN (:gradebookroles))";
+                AND r.roleid IN ({$gradebookroles}))";
 
     return $DB->count_records_sql($sql, $params) + 1;
 }
