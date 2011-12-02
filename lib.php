@@ -74,8 +74,6 @@ class grade_report_grade_breakdown extends grade_report {
             $gradeid = get_user_preferences('report_grade_breakdown_gradeid', 0);
         }
 
-        // We retrieved from the store, now we must check that it is a valid
-        // grade item. If it is, then we can use it
         $item_query = array('id' => $gradeid);
 
         if ($gradeid != 0 && $DB->get_field('grade_items', 'id', $item_query)) {
@@ -93,6 +91,7 @@ class grade_report_grade_breakdown extends grade_report {
 
         $this->currentgroup = $groupid;
         $this->currentgrade = $gradeid;
+
         $this->grade_items = grade_item::fetch_all($query);
 
         $this->baseurl = '/grade/report/grade_breakdown/index.php';
@@ -142,9 +141,13 @@ class grade_report_grade_breakdown extends grade_report {
             'group' => $this->currentgroup
         ));
 
-        $this->grade_selector = $OUTPUT->single_select(
-            $url, 'grade', $grades, $this->currentgrade
+        $select = new single_select(
+            $url, 'grade', $grades, $this->currentgrade, null
         );
+
+        $select->attributes = array('id' => 'selectgrade');
+
+        $this->grade_selector = $OUTPUT->render($select);
     }
 
     /**
@@ -175,6 +178,8 @@ class grade_report_grade_breakdown extends grade_report {
         } else {
             $groups = $sql_groups;
             $this->currentgroup = current(array_keys($sql_groups));
+
+            $this->group = $DB->get_record('groups', array('id' => $this->currentgroup));
         }
 
         // Cache the grade selector html for later use
@@ -183,9 +188,13 @@ class grade_report_grade_breakdown extends grade_report {
             'grade' => $this->currentgrade
         ));
 
-        $this->group_selector = $OUTPUT->single_select(
-            $url, 'group', $groups, $this->currentgroup, 0
+        $select = new single_select(
+            $url, 'group', $groups, $this->currentgroup, null
         );
+
+        $select->attributes = array('id' => 'selectgroup');
+
+        $this->group_selector = $OUTPUT->render($select);
     }
 
     function print_table() {
@@ -317,33 +326,34 @@ class grade_report_grade_breakdown extends grade_report {
                 $low_real = round($info->low_real, $decimals);
 
                 $line = array();
-                $line[] = ($info->count==0) ? format_string($letter) :
-                    $this->link_to_letter($letter, $info->boundary, $item->id);
 
-                $line[] = ($info->count==0) ? $boundary . '% - '.
-                    $gmax . '%' : $this->link_to_letter(($boundary . '% - '.
-                    $gmax . '%'), $info->boundary, $item->id);
+                $make_link = function ($self, $str) use ($info, $item) {
+                    if ($info->count == 0) {
+                         return $str;
+                    } else {
+                        return $self->link_to_letter($str, $info->boundary, $item->id);
+                    }
+                };
 
-                $line[] = ($info->count==0) ? $boundary_max . ' - ' .
-                    $pmax : $this->link_to_letter(($boundary_max . ' - ' . $pmax),
-                    $info->boundary, $item->id);
 
-                $line[] = ($info->count==0) ? $high_percent . '%' :
-                    $this->link_to_letter(($high_percent . '%'), $info->boundary, $item->id);
-                $line[] = ($info->count==0) ? ($high_real) :
-                    $this->link_to_letter($high_real, $info->boundary, $item->id);
+                $line[] = $make_link($this, format_string($letter));
+                $line[] = $make_link($this, $boundary . '% - '.$gmax . '%');
+                $line[] = $make_link($this, $boundary_max . ' - ' . $pmax);
+                $line[] = $make_link($this, $high_percent . '%');
+                $line[] = $make_link($this, $high_real);
+                $line[] = $make_link($this, $low_percent. '%');
+                $line[] = $make_link($this, $low_real);
 
-                $line[] = ($info->count==0) ? ($low_percent . '%') :
-                    $this->link_to_letter(($low_percent . '%'), $info->boundary, $item->id);
+                if ($info->count == 0) {
+                    $line[] = '0%';
+                    $line[] = 0;
+                } else {
+                    $rounded_percents = round(($info->percent_total / $info->count), $decimals);
+                    $rounded_real = round(($info->real_total / $info->count), $decimals);
 
-                $line[] = ($info->count == 0) ? 0 :
-                    $this->link_to_letter($low_real, $info->boundary, $item->id);
-
-                $line[] = ($info->count == 0 ? 0 :
-                    round(($info->percent_total / $info->count), $decimals)) . '%';
-
-                $line[] = ($info->count == 0 ? 0 :
-                    round(($info->real_total / $info->count), $decimals));
+                    $line[] = $rounded_percents . '%';
+                    $line[] = $rounded_real;
+                }
 
                 $line[] = round(($info->count / (($total_grades) ? $total_grades : 1)) * 100, $decimals) . '%';
                 $line[] = $info->count;
@@ -410,12 +420,13 @@ class grade_report_grade_breakdown extends grade_report {
             ));
             return html_writer::link($url, format_string($letter));
         } else {
-            return format_string($letter);
+            return $letter;
         }
     }
 }
 
 function print_edit_link($courseid, $grade_item, $grade_gradeid) {
+    global $OUTPUT;
 
     if (!in_array($grade_item->itemtype, array('course', 'category'))) {
         $url = new moodle_url('/grade/edit/tree/grade.php', array(
@@ -426,9 +437,11 @@ function print_edit_link($courseid, $grade_item, $grade_gradeid) {
             'gpr_plugin' => 'grade_breakdown'
         ));
 
-        return html_writer::link($url, get_string('edit', 'grades'));
+        $icon = $OUTPUT->pix_icon('i/edit', get_string('edit', 'grades'));
+
+        return html_writer::link($url, $icon);
     } else {
-        return 'X';
+        return $OUTPUT->pix_icon('i/cross_red_big', get_string('edit', 'grades'));
     }
 }
 
