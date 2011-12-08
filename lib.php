@@ -173,7 +173,9 @@ class grade_report_grade_breakdown extends grade_report {
 
         $sql_groups = $DB->get_records_sql_menu($sql, $params);
 
-        if (count($sql_groups) > 1) {
+        $count = count($sql_groups);
+
+        if ($count > 1 or $count  == 0) {
             $groups = array(0 => get_string('allparticipants')) + $sql_groups;
         } else {
             $groups = $sql_groups;
@@ -215,7 +217,7 @@ class grade_report_grade_breakdown extends grade_report {
 
             $params['itemid'] = $item->id;
 
-            if (isset($this->group)) {
+            if (!empty($this->group)) {
                 $groupname = $this->group->name;
 
                 $params['groupid'] = $this->group->id;
