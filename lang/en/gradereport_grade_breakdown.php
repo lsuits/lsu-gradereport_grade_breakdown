@@ -32,6 +32,7 @@ $string['items'] = 'Grade Items';
 // Error strings
 $string['teacher_disabled'] = 'Your teacher has disabled this feature.';
 $string['size_disabled'] = 'This feature is disabled due to the size of the class.';
+$string['not_supported'] = $string['all_grades'] . ' is not supported.';
 
 //Strings for the settings
 $string['allowstudents'] = 'Allow students to view the report';
