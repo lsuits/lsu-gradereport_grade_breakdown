@@ -175,17 +175,11 @@ if (!$grades) {
     exit;
 }
 
-if ($grade_item->itemname) {
-    $name = $grade_item->itemname;
-} else if ($grade_item->fullname == '?') {
-    $name = get_string('course_total', 'gradereport_grade_breakdown');
-} else {
-    $name = $grade_item->fullname;
-}
-
-// Get the Moodley version of this grade item
+// Get the Moodle version of this grade item
 $item_params = array('id' => $gradeid);
 $grade_item = grade_item::fetch($item_params);
+
+$name = $grade_item->get_name();
 
 $g_params = array('id' => $groupid);
 $groupname = ($groupid) ? ' in ' . $DB->get_field('groups', 'name', $g_params) : '';
