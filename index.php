@@ -103,7 +103,7 @@ if (!$has_access && !$is_teacher) {
 }
 
 // Find the number of users in the course
-$users = get_role_users($gradedroles, $context, false, 'u.id');
+$users = get_role_users($gradedroles, $context, false);
 $num_users = count($users);
 
 // The student has access, but they still are unable to view it
