@@ -41,8 +41,8 @@ if (!$course = $DB->get_record('course', array('id' => $courseid))) {
 
 require_login($course);
 
-$context = get_context_instance(CONTEXT_COURSE, $course->id);
-
+//$context = get_context_instance(CONTEXT_COURSE, $course->id);
+$context = context_course::instance($course->id);
 // This is the normal requirements
 require_capability('gradereport/grade_breakdown:view', $context);
 
