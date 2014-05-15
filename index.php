@@ -124,9 +124,31 @@ $report->setup_groups();
 echo '<div class="selectors">
         '. ($is_teacher ? $report->group_selector : '') . $report->grade_selector . '
       </div>';
-
+	 	 	
 $report->print_table();
+?> 	 	
+<script> 	 	
+ 	
+// On ready  	 	
+    YUI().use('charts', function (Y) { 	 	
+    // Instantiate and render the chart 	 	
+    Y.on('domready', function () { 	 	
+    var key; 	 	
+    // foreach($applicationData as $key=>$value) { 	 	
+    for (key in applicationData) { 	 	
+        value = applicationData[key]; 	 	
+	                         	 	
+        var mychart = new Y.Chart({ 	 	
+            dataProvider: value, 	 	
+            render: "#" + key, 	 	
+            type: "column" 	 	
+            }); 	 	
+        } 	 	
+  }); 	 	
+}); 	 	
+</script> 	 	
 
+<?php
 echo $OUTPUT->footer();
 
 ?>

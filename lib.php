@@ -213,8 +213,12 @@ class grade_report_grade_breakdown extends grade_report {
                         AND ra.userid = g.userid ";
 
         // Print a table for each grade item
+        $javascriptOutput = array();
+        $idCounter = 0;
+        
         foreach ($this->grade_items as $item) {
-
+            $idCounter++;
+                
             $params['itemid'] = $item->id;
 
             if (!empty($this->group)) {
@@ -315,6 +319,8 @@ class grade_report_grade_breakdown extends grade_report {
             // After the filter process, we must build the display data
             $max = 100;
             $final_data = array();
+            // Initialize a counter to add a unique name to every table
+            $gradeLetters = array();
             foreach ($data as $letter => $info) {
 
                 $boundary = format_float($info->boundary, $decimals);
@@ -362,6 +368,12 @@ class grade_report_grade_breakdown extends grade_report {
                 $final_data[] = $line;
 
                 $max = $info->boundary - (1 / (pow(10, $decimals)));
+                
+                $gradeLetters[] = array(
+                    'category'      => $letter, 
+                    'highPercent'   => $high_percent,
+                    'lowPercent'    => $low_percent,
+                );
             }
 
             // Footer info
@@ -406,7 +418,16 @@ class grade_report_grade_breakdown extends grade_report {
             $table->data = $final_data;
 
             echo html_writer::table($table);
+            
+            // Set up a container
+            $chartId = "yui-{$idCounter}";
+            echo '<div id="' . $chartId . '" class="yui-chart" style="width: 100%; height:300px"></div>';
+            $javascriptOutput[$chartId] = $gradeLetters;
         }
+    $jsonOutput = json_encode($javascriptOutput);
+    echo "<script type=\"text/javascript\"> applicationData = {$jsonOutput}; </script>";
+        
+        
     }
 
     // Link the letter grade to even further break down info
