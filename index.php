@@ -124,6 +124,13 @@ $report->setup_groups();
 echo '<div class="selectors">
         '. ($is_teacher ? $report->group_selector : '') . $report->grade_selector . '
       </div>';
+
+echo '<h1>' . $_s('show_charts') . '</h1>';
+
+echo '
+
+<button id="toggle" class="yui3-button">Toggle</button>
+';
 	 	 	
 $report->print_table();
 ?> 	 	
@@ -137,12 +144,27 @@ $report->print_table();
     // foreach($applicationData as $key=>$value) { 	 	
     for (key in applicationData) { 	 	
         value = applicationData[key]; 	 	
-	                         	 	
+	                         
+        var myAxes = {
+            values:{
+                type:"numeric",
+                labelFunction: function(val)
+                {
+                    return Math.round(val);
+                },
+                majorUnit: {
+                count: 10 //set the count to 1o
+                }
+            }
+        };
+       
         var mychart = new Y.Chart({ 	 	
-            dataProvider: value, 	 	
-            render: "#" + key, 	 	
-            type: "column" 	 	
-            }); 	 	
+            dataProvider: value, 
+            //seriesCollection:seriesCollection,
+            render: "#" + key, 
+            axes: myAxes
+            }); 	
+
         } 	 	
   }); 	 	
 }); 	 	

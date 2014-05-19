@@ -54,3 +54,8 @@ $string['count'] = '# of Students';
 $string['no_grades'] = 'No grades for this letter.';
 $string['user_grades'] = 'Users with Grade ';
 $string['real_grade'] = 'Real Grade';
+
+
+// Charts 
+$string['show_charts'] = 'Show Charts';
+$string['toggle'] = 'toggle';

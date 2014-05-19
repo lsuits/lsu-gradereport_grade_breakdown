@@ -371,8 +371,8 @@ class grade_report_grade_breakdown extends grade_report {
                 
                 $gradeLetters[] = array(
                     'category'      => $letter, 
-                    'highPercent'   => $high_percent,
-                    'lowPercent'    => $low_percent,
+                    'Percentage of Students'   => round(($info->count / (($total_grades) ? $total_grades : 1)) * 100, $decimals),
+                    //'number of students'    => $info->count
                 );
             }
 
@@ -419,12 +419,37 @@ class grade_report_grade_breakdown extends grade_report {
 
             echo html_writer::table($table);
             
-            // Set up a container
+
+            
             $chartId = "yui-{$idCounter}";
             echo '<div id="' . $chartId . '" class="yui-chart" style="width: 100%; height:300px"></div>';
+            
+                        // Set up a container
+            ?>
+            <link rel="stylesheet" href='http://yui.yahooapis.com/3.16.0/build/cssbutton/cssbutton.css'></link>
+
+
+
+            <script type="text/javascript">
+                YUI().use('node', function(Y) {
+                    Y.delegate('click', function(e) {
+                        var buttonID = e.currentTarget.get('id'),
+                            node = Y.one('#<?php echo $chartId; ?>');
+                            if (buttonID === '<?php echo get_string("toggle", "gradereport_grade_breakdown")?>') {
+                            node.toggleView();
+                            }
+
+                    }, document, 'button');
+                });
+            </script>
+            
+            <?php 
+            
             $javascriptOutput[$chartId] = $gradeLetters;
         }
+        
     $jsonOutput = json_encode($javascriptOutput);
+    
     echo "<script type=\"text/javascript\"> applicationData = {$jsonOutput}; </script>";
         
         
