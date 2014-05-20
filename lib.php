@@ -417,16 +417,13 @@ class grade_report_grade_breakdown extends grade_report {
 
             $table->data = $final_data;
 
-            echo html_writer::table($table);
-            
-
-            
+            //Begin constructing containers for chart
             $chartId = "yui-{$idCounter}";
+            echo '<div id="container'.$chartId . '">';
+            echo " <h3> " . get_string('chart_title', 'gradereport_grade_breakdown') . "</h3> ";
             echo '<div id="' . $chartId . '" class="yui-chart" style="width: 100%; height:300px"></div>';
-            
-                        // Set up a container
+            echo '</div>';
             ?>
-            <link rel="stylesheet" href='http://yui.yahooapis.com/3.16.0/build/cssbutton/cssbutton.css'></link>
 
 
 
@@ -434,7 +431,7 @@ class grade_report_grade_breakdown extends grade_report {
                 YUI().use('node', function(Y) {
                     Y.delegate('click', function(e) {
                         var buttonID = e.currentTarget.get('id'),
-                            node = Y.one('#<?php echo $chartId; ?>');
+                            node = Y.one('#<?php echo 'container' . $chartId; ?>');
                             if (buttonID === '<?php echo get_string("toggle", "gradereport_grade_breakdown")?>') {
                             node.toggleView();
                             }
@@ -446,12 +443,14 @@ class grade_report_grade_breakdown extends grade_report {
             <?php 
             
             $javascriptOutput[$chartId] = $gradeLetters;
+            
+                        echo html_writer::table($table);
+            echo '<br /><br /><br />';
         }
         
     $jsonOutput = json_encode($javascriptOutput);
     
     echo "<script type=\"text/javascript\"> applicationData = {$jsonOutput}; </script>";
-        
         
     }
 

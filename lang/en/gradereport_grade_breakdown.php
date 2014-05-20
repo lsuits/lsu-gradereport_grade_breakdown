@@ -59,3 +59,5 @@ $string['real_grade'] = 'Real Grade';
 // Charts 
 $string['show_charts'] = 'Show Charts';
 $string['toggle'] = 'toggle';
+$string['chart_title'] = ' Chart - Percentage of Students Per Letter Grade';
+$string['perc_of_students'] = 'Percentage of Students';

@@ -125,12 +125,8 @@ echo '<div class="selectors">
         '. ($is_teacher ? $report->group_selector : '') . $report->grade_selector . '
       </div>';
 
-echo '<h1>' . $_s('show_charts') . '</h1>';
+echo '<h1>' . $_s('show_charts') . '</h1>' . '<button  id="toggle" class="yui3-button">Toggle</button>';
 
-echo '
-
-<button id="toggle" class="yui3-button">Toggle</button>
-';
 	 	 	
 $report->print_table();
 ?> 	 	
@@ -147,6 +143,7 @@ $report->print_table();
 	                         
         var myAxes = {
             values:{
+                title: <?php echo '"' .get_string('perc_of_students', 'gradereport_grade_breakdown') .'"';?>,
                 type:"numeric",
                 labelFunction: function(val)
                 {
