@@ -136,11 +136,35 @@ $report->print_table();
     YUI().use('charts', function (Y) { 	 	
     // Instantiate and render the chart 	 	
     Y.on('domready', function () { 	 	
-    var key; 	 	
+    var key;
+    var myTooltip = {
+    styles: { 
+        backgroundColor: "#333",
+        color: "#eee",
+        borderColor: "#fff",
+        textAlign: "center"
+    },
+    markerLabelFunction: function(categoryItem, valueItem, itemIndex, series, seriesIndex)
+    {
+        var msg = document.createElement("div"),
+            underlinedTextBlock = document.createElement("span"),
+            boldTextBlock = document.createElement("div");
+        underlinedTextBlock.style.textDecoration = "underline";
+        boldTextBlock.style.marginTop = "5px";
+        boldTextBlock.style.fontWeight = "bold";
+        underlinedTextBlock.appendChild(document.createTextNode(valueItem.displayName + " for " + 
+                                        categoryItem.axis.get("labelFunction").apply(this, [categoryItem.value, categoryItem.axis.get("labelFormat")])));
+        boldTextBlock.appendChild(document.createTextNode(valueItem.axis.get("labelFunction").apply(this, [valueItem.value, {prefix:"$", decimalPlaces:2}])));   
+        msg.appendChild(underlinedTextBlock);
+        msg.appendChild(document.createElement("br"));
+        msg.appendChild(boldTextBlock); 
+        return msg; 
+    }
+};
     // foreach($applicationData as $key=>$value) { 	 	
     for (key in applicationData) { 	 	
         value = applicationData[key]; 	 	
-	                         
+	console.log(applicationData);                         
         var myAxes = {
             values:{
                 title: <?php echo '"' .get_string('perc_of_students', 'gradereport_grade_breakdown') .'"';?>,
@@ -159,7 +183,9 @@ $report->print_table();
             dataProvider: value, 
             //seriesCollection:seriesCollection,
             render: "#" + key, 
-            axes: myAxes
+            axes: myAxes,
+            type: "column",
+            tooltip: myTooltip
             }); 	
 
         } 	 	

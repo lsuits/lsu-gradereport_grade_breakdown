@@ -372,7 +372,7 @@ class grade_report_grade_breakdown extends grade_report {
                 $gradeLetters[] = array(
                     'category'      => $letter, 
                     'Percentage of Students'   => round(($info->count / (($total_grades) ? $total_grades : 1)) * 100, $decimals),
-                    //'number of students'    => $info->count
+                    'number of students'    => $info->count
                 );
             }
 
