@@ -321,6 +321,8 @@ class grade_report_grade_breakdown extends grade_report {
             $final_data = array();
             // Initialize a counter to add a unique name to every table
             $gradeLetters = array();
+            $numberOfStudents = array();
+
             foreach ($data as $letter => $info) {
 
                 $boundary = format_float($info->boundary, $decimals);
@@ -372,7 +374,9 @@ class grade_report_grade_breakdown extends grade_report {
                 $gradeLetters[] = array(
                     'category'      => $letter, 
                     'Percentage of Students'   => round(($info->count / (($total_grades) ? $total_grades : 1)) * 100, $decimals),
-                    'number of students'    => $info->count
+                );
+                $numberOfStudents[] = array(
+                    'number of students'    => $info->count,
                 );
             }
 
@@ -443,14 +447,16 @@ class grade_report_grade_breakdown extends grade_report {
             <?php 
             
             $javascriptOutput[$chartId] = $gradeLetters;
-            
-                        echo html_writer::table($table);
+            $javascriptOutputNumOfStudents[$chartId] = $numberOfStudents;
+            echo html_writer::table($table);
             echo '<br /><br /><br />';
         }
         
     $jsonOutput = json_encode($javascriptOutput);
+    $jsonOutputNumOfStudents = json_encode($javascriptOutputNumOfStudents);
     
-    echo "<script type=\"text/javascript\"> applicationData = {$jsonOutput}; </script>";
+    echo "<script type=\"text/javascript\"> applicationData = {$jsonOutput}; applicationDataNumOfStudents = {$jsonOutputNumOfStudents}; </script>";
+    
         
     }
 

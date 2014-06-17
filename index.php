@@ -41,8 +41,8 @@ if (!$course = $DB->get_record('course', array('id' => $courseid))) {
 
 require_login($course);
 
-//$context = get_context_instance(CONTEXT_COURSE, $course->id);
 $context = context_course::instance($course->id);
+
 // This is the normal requirements
 require_capability('gradereport/grade_breakdown:view', $context);
 
@@ -146,25 +146,20 @@ $report->print_table();
     },
     markerLabelFunction: function(categoryItem, valueItem, itemIndex, series, seriesIndex)
     {
+        var nodeNumber = this._parentNode._node.attributes[0].nodeValue;
         var msg = document.createElement("div"),
-            underlinedTextBlock = document.createElement("span"),
-            boldTextBlock = document.createElement("div");
+        underlinedTextBlock = document.createElement("span"),
+        boldTextBlock = document.createElement("div");
         underlinedTextBlock.style.textDecoration = "underline";
         boldTextBlock.style.marginTop = "5px";
         boldTextBlock.style.fontWeight = "bold";
-        underlinedTextBlock.appendChild(document.createTextNode(valueItem.displayName + " for " + 
-                                        categoryItem.axis.get("labelFunction").apply(this, [categoryItem.value, categoryItem.axis.get("labelFormat")])));
-        boldTextBlock.appendChild(document.createTextNode(valueItem.axis.get("labelFunction").apply(this, [valueItem.value, {prefix:"$", decimalPlaces:2}])));   
+        underlinedTextBlock.appendChild(document.createTextNode("Actual Number of Students " + applicationDataNumOfStudents[nodeNumber][itemIndex]['number of students'])); 
         msg.appendChild(underlinedTextBlock);
-        msg.appendChild(document.createElement("br"));
-        msg.appendChild(boldTextBlock); 
         return msg; 
     }
 };
-    // foreach($applicationData as $key=>$value) { 	 	
-    for (key in applicationData) { 	 	
-        value = applicationData[key]; 	 	
-	console.log(applicationData);                         
+    for (key in applicationData) {
+        value = applicationData[key]; 	        
         var myAxes = {
             values:{
                 title: <?php echo '"' .get_string('perc_of_students', 'gradereport_grade_breakdown') .'"';?>,
@@ -174,26 +169,24 @@ $report->print_table();
                     return Math.round(val);
                 },
                 majorUnit: {
-                count: 10 //set the count to 1o
-                }
+                count: 10 
+                },
+                maximum: '100',
             }
         };
        
         var mychart = new Y.Chart({ 	 	
             dataProvider: value, 
-            //seriesCollection:seriesCollection,
             render: "#" + key, 
             axes: myAxes,
             type: "column",
-            tooltip: myTooltip
-            }); 	
-
-        } 	 	
+            tooltip: myTooltip,
+            });
+        } 
   }); 	 	
 }); 	 	
 </script> 	 	
 
 <?php
 echo $OUTPUT->footer();
-
 ?>

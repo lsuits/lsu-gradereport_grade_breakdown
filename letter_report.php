@@ -38,8 +38,7 @@ if (!$course = $DB->get_record('course', array('id' => $courseid))) {
 
 require_login($course);
 
-$context = get_context_instance(CONTEXT_COURSE, $course->id);
-
+$context = context_course::instance($course->id);
 // They MUST be able to view grades to view this page
 require_capability('gradereport/grade_breakdown:view', $context);
 require_capability('moodle/grade:viewall', $context);
