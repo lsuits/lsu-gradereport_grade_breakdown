@@ -38,7 +38,7 @@ if (!$course = $DB->get_record('course', array('id' => $courseid))) {
 
 require_login($course);
 
-$context = get_context_instance(CONTEXT_COURSE, $course->id);
+$context = context_course::instance($course->id);
 
 // They MUST be able to view grades to view this page
 require_capability('gradereport/grade_breakdown:view', $context);
@@ -96,8 +96,10 @@ if (empty($gradeid)) {
 // Get all the students in this course
 $roleids = explode(',', $CFG->gradebookroles);
 
-$graded_users = get_role_users($roleids, $context,
-                false, '', 'u.lastname ASC', true, $groupid);
+$graded_users = array();
+foreach ($roleids as $roleid) {
+  $graded_users = $graded_users + get_role_users($roleid, $context, false, '', 'u.lastname ASC', true, $groupid);
+}
 
 $userids = implode(',', array_keys($graded_users));
 
@@ -153,7 +155,10 @@ if ($groupid) {
 }
 
 // Get all the grades for the users within the range specified with $real_high and $real_low
-$sql = "SELECT u.id, g.id AS gradeid, g.finalgrade, u.firstname, u.lastname
+
+$mainuserfields = user_picture::fields('u', array('id'), 'userid');
+
+$sql = "SELECT u.id, $mainuserfields, g.id AS gradeid, g.finalgrade
                 $group_name
           FROM  {grade_grades} g,
                 {user} u
