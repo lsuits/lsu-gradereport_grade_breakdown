@@ -41,7 +41,6 @@ if (!$course = $DB->get_record('course', array('id' => $courseid))) {
 
 require_login($course);
 
-//$context = get_context_instance(CONTEXT_COURSE, $course->id);
 $context = context_course::instance($course->id);
 // This is the normal requirements
 require_capability('gradereport/grade_breakdown:view', $context);
@@ -103,7 +102,11 @@ if (!$has_access && !$is_teacher) {
 }
 
 // Find the number of users in the course
-$users = get_role_users($gradedroles, $context, false);
+$users = array();
+foreach ($gradedroles as $gradedrole) {
+  $users = $users + get_role_users($gradedrole, $context, false);
+}
+
 $num_users = count($users);
 
 // The student has access, but they still are unable to view it
