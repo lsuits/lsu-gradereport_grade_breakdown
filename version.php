@@ -22,6 +22,19 @@
 //                                                                       //
 ///////////////////////////////////////////////////////////////////////////
 
-$plugin->version  = 2013081000;
+/**
+ * Version details for the grader report
+ *
+ * @package    gradereport_grade_breakdown
+ * @copyright  2015 Louisiana State University, Robert Russo, Dave Elliott, Philip Cali, Adam Zapletal
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+defined('MOODLE_INTERNAL') || die();
+
+$plugin->version  = 2016040700;
 $plugin->requires = 2011113010;
 
+$plugin->component = 'gradereport_grade_breakdown';
+$plugin->maturity = MATURITY_STABLE;
+$plugin->release = '1.3';
