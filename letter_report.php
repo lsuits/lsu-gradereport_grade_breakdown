@@ -28,7 +28,7 @@ require_once $CFG->dirroot.'/grade/lib.php';
 require_once $CFG->dirroot.'/grade/report/grade_breakdown/lib.php';
 
 $courseid = required_param('id', PARAM_INT);
-$bound    = required_param('bound', PARAM_FLOAT);
+$bound    = required_param('bound', PARAM_RAW);
 $gradeid  = required_param('grade', PARAM_INT);
 $groupid  = optional_param('group', 0, PARAM_INT);
 

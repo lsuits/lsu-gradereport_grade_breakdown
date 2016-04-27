@@ -214,7 +214,9 @@ class grade_report_grade_breakdown extends grade_report {
 
         // Print a table for each grade item
         foreach ($this->grade_items as $item) {
-
+        if(($item->itemtype == 'course') || ($item->itemtype == 'category')) {
+            continue;
+        }
             $params['itemid'] = $item->id;
 
             if (!empty($this->group)) {
@@ -226,7 +228,7 @@ class grade_report_grade_breakdown extends grade_report {
                 $sql = "SELECT g.* FROM
                             {grade_grades} g,
                             {groups_members} gm
-                            $role_select
+                            $role_selectem->idt
                         WHERE g.userid = gm.userid
                           $role_where
                           AND g.itemid = :itemid
