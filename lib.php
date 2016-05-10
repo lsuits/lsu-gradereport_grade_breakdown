@@ -202,21 +202,17 @@ class grade_report_grade_breakdown extends grade_report {
     function print_table() {
         global $OUTPUT, $DB;
 
-        // Filter by those who are actually enrolled
         $params = array('contextid' => $this->context->id);
-
-        $gradebookroles = get_config('moodle', 'gradebookroles');
+        // Filter by those who are actually enrolled
 
         $role_select = ", {role_assignments} ra ";
         $role_where = " AND ra.contextid = :contextid
-                        AND ra.roleid IN ({$gradebookroles})
+                        AND ra.roleid IN ({$this->gradebookroles})
                         AND ra.userid = g.userid ";
 
         // Print a table for each grade item
-        foreach ($this->grade_items as $item) {
-        if(($item->itemtype == 'course') || ($item->itemtype == 'category')) {
-            continue;
-        }
+        foreach ($this->grade_items as $item) {  
+            
             $params['itemid'] = $item->id;
 
             if (!empty($this->group)) {
@@ -228,7 +224,7 @@ class grade_report_grade_breakdown extends grade_report {
                 $sql = "SELECT g.* FROM
                             {grade_grades} g,
                             {groups_members} gm
-                            $role_selectem->idt
+                            $role_select
                         WHERE g.userid = gm.userid
                           $role_where
                           AND g.itemid = :itemid
@@ -266,6 +262,7 @@ class grade_report_grade_breakdown extends grade_report {
             $data = array();
             // Prepare the data
             foreach ($letters as $boundary => $letter) {
+                
                 if (!isset($data[$letter])) {
                     $info = new stdClass;
                     $info->count = 0;
@@ -283,8 +280,21 @@ class grade_report_grade_breakdown extends grade_report {
             // Filter the grades based on the letter
             if ($grades) {
                 foreach ($grades as $grade) {
-                    $value = grade_grade::standardise_score($grade->finalgrade, 
+                    
+                    // if we're reporting ALL grade items
+                    if ( ! $this->currentgrade) {
+                        $value = grade_grade::standardise_score($grade->finalgrade, 
+                                $grade->rawgrademin, $grade->rawgrademax, 0, 100);
+
+                    // else, if we're reporting a course or category grade item
+                    } elseif(in_array($item->itemtype, ['course', 'category'])) {
+                        $value = grade_grade::standardise_score($grade->finalgrade, 
+                                $grade->rawgrademin, $grade->rawgrademax, 0, 100);
+
+                    } else {
+                        $value = grade_grade::standardise_score($grade->finalgrade, 
                                 $item->grademin, $item->grademax, 0, 100);
+                    }
 
                     $value = round($value, $item->get_decimals());
 
@@ -457,8 +467,6 @@ function find_rank($context, $grade_item, $grade_grade, $groupid) {
         'contextid' => $context->id
     );
 
-    $gradebookroles = get_config('moodle', 'gradebookroles');
-
     $group_select = '';
     $group_where = '';
 
@@ -480,7 +488,7 @@ function find_rank($context, $grade_item, $grade_grade, $groupid) {
                 AND g.itemid = :itemid
                 $group_where
                 AND (r.contextid = :contextid
-                AND r.roleid IN ({$gradebookroles}))";
+                AND r.roleid IN ({$this->gradebookroles}))";
 
     return $DB->count_records_sql($sql, $params) + 1;
 }
