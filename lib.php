@@ -467,6 +467,7 @@ function find_rank($context, $grade_item, $grade_grade, $groupid) {
         'contextid' => $context->id
     );
 
+    $gradebookroles = get_config('moodle', 'gradebookroles');
     $group_select = '';
     $group_where = '';
 
@@ -488,7 +489,7 @@ function find_rank($context, $grade_item, $grade_grade, $groupid) {
                 AND g.itemid = :itemid
                 $group_where
                 AND (r.contextid = :contextid
-                AND r.roleid IN ({$this->gradebookroles}))";
+                AND r.roleid IN ({$gradebookroles}))";
 
     return $DB->count_records_sql($sql, $params) + 1;
 }
