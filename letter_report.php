@@ -25,6 +25,8 @@
 require_once '../../../config.php';
 require_once $CFG->dirroot.'/lib/gradelib.php';
 require_once $CFG->dirroot.'/grade/lib.php';
+require_once $CFG->libdir.'/grade/grade_item.php';
+require_once $CFG->libdir.'/grade/grade_grade.php';
 require_once $CFG->dirroot.'/grade/report/grade_breakdown/lib.php';
 
 $courseid = required_param('id', PARAM_INT);
@@ -103,7 +105,7 @@ foreach ($roleids as $roleid) {
 
 $userids = implode(',', array_keys($graded_users));
 
-$sql = "SELECT g.id, g.grademax, g.itemname, gc.fullname FROM
+$sql = "SELECT g.id, g.grademax, g.decimals, g.itemname, gc.fullname FROM
             {grade_items} g,
             {grade_categories} gc
          WHERE g.id = :gradeid
@@ -111,8 +113,13 @@ $sql = "SELECT g.id, g.grademax, g.itemname, gc.fullname FROM
             OR (gc.id = g.iteminstance AND g.categoryid IS NULL))
            AND g.courseid = :courseid";
 
+$decimals = '';
+$grademax = '';
+
 $grade_item = $DB->get_record_sql($sql, array(
     'gradeid' => $gradeid,
+    'grademax' => $grademax,
+    'decimals' => $decimals,
     'courseid' => $courseid
 ));
 
@@ -124,12 +131,12 @@ foreach($letters as $boundary => $letter) {
     if ($boundary == $bound) {
         break;
     }
-    $high = $boundary - (1 / (pow(10, 5)));
+    $high = $boundary - (1 / (pow(10, $decimals)));
 }
 
 // In the event that we're looking at the max, students actually have the
 // ability to go twice the max, so we must adhere to that rule
-$high = ($high == 100) ? $high * 2 : $high;
+// $high = ($high == 100) ? $high * 2 : $high;
 
 $real_high = $grade_item->grademax * ($high / 100);
 $real_low  = $grade_item->grademax * ($bound / 100);

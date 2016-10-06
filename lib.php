@@ -454,7 +454,7 @@ function print_edit_link($courseid, $grade_item, $grade_gradeid) {
 
         return html_writer::link($url, $icon);
     } else {
-        return $OUTPUT->pix_icon('i/cross_red_big', get_string('edit', 'grades'));
+        return $OUTPUT->pix_icon('i/invalid', get_string('edit', 'grades'));
     }
 }
 
