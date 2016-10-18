@@ -221,7 +221,7 @@ class grade_report_grade_breakdown extends grade_report {
                 $params['groupid'] = $this->group->id;
 
                 // Get all the grades for that grade item, for this group
-                $sql = "SELECT g.* FROM
+                $sql = "SELECT DISTINCT(g.id) AS uniqueid, g.* FROM
                             {grade_grades} g,
                             {groups_members} gm
                             $role_select
@@ -454,7 +454,7 @@ function print_edit_link($courseid, $grade_item, $grade_gradeid) {
 
         return html_writer::link($url, $icon);
     } else {
-        return $OUTPUT->pix_icon('i/cross_red_big', get_string('edit', 'grades'));
+        return $OUTPUT->pix_icon('i/invalid', get_string('edit', 'grades'));
     }
 }
 

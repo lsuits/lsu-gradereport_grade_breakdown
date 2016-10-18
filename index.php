@@ -103,8 +103,20 @@ if (!$has_access && !$is_teacher) {
 
 // Find the number of users in the course
 $users = array();
-foreach ($gradedroles as $gradedrole) {
-  $users = $users + get_role_users($gradedrole, $context, false);
+
+if (COUNT($gradedroles) > 1) {
+    foreach ($gradedroles as $gradedrole) {
+        $users = $users + get_role_users(
+            $gradedrole, $context, false, '',
+            'u.id, u.lastname, u.firstname', null, $groupid
+        );
+    }
+} else {
+    $gradedrole = implode($gradedroles);
+    $users = get_role_users(
+        $gradedrole, $context, false, '',
+        'u.id', 'u.lastname, u.firstname', null, $groupid
+    );
 }
 
 $num_users = count($users);
